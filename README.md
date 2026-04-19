@@ -1,54 +1,19 @@
-# Smart Energy Authentication & Gateway System
+# Система автентифікації та API-шлюз — Smart Energy
 
-Complete MVP implementation of authentication microservice + API Gateway for Smart Energy project.
+MVP-реалізація мікросервісу автентифікації та API-шлюзу для проєкту Smart Energy.
 
-## Architecture
+## Сервіси
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Client Application                                          │
-└──────────────┬──────────────────────────────────────────────┘
-               │
-               │ 1. POST /register (username, password, allowed_storages)
-               │ Response: {qr_code_base64, totp_secret}
-               ▼
-    ┌──────────────────────────────┐
-    │ AUTH SERVICE (port 8001)     │
-    │ ├─ /register                 │
-    │ ├─ /login                    │
-    │ └─ /health                   │
-    └──────────────┬───────────────┘
-                   │ 2. POST /login (username, password, totp_code)
-                   │ Response: {access_token, token_type, expires_in}
-                   │
-                   │ 3. Bearer token + POST /query request
-                   ▼
-    ┌──────────────────────────────┐
-    │ API GATEWAY (port 8000)      │
-    │ ├─ POST /query               │
-    │ │  ├─ Validates JWT          │
-    │ │  ├─ Checks RBAC            │
-    │ │  └─ Routes to service      │
-    │ ├─ /health                   │
-    │ └─ /                          │
-    └──────────────────────────────┘
-                   │
-                   ▼ Routes to actual services
-    (PostgreSQL, MongoDB, etc.)
-```
+### 1. Сервіс автентифікації (порт 8001)
 
-## Services
+**Призначення**: реєстрація користувачів та генерація JWT-токенів з 2FA через TOTP.
 
-### 1. Authentication Service (Port 8001)
-
-**Purpose**: User registration and JWT token generation with TOTP 2FA
-
-**Endpoints**:
+**Ендпоінти**:
 
 #### POST `/register`
-Register a new user and setup TOTP for 2FA.
+Реєстрація нового користувача та налаштування TOTP для 2FA.
 
-Request:
+Запит:
 ```json
 {
   "username": "alice",
@@ -57,7 +22,7 @@ Request:
 }
 ```
 
-Response:
+Відповідь:
 ```json
 {
   "qr_code_base64": "iVBORw0KGgoAAAANSUhEUg...",
@@ -65,15 +30,15 @@ Response:
 }
 ```
 
-Steps:
-1. User scans QR code with Google Authenticator app
-2. Save the raw `totp_secret` as backup
-3. User now has 2FA enabled
+Кроки:
+1. Відскануйте QR-код у застосунку Google Authenticator
+2. Збережіть `totp_secret` як резервний варіант
+3. Тепер у користувача увімкнено 2FA
 
 #### POST `/login`
-Authenticate user with password + TOTP code to receive JWT.
+Автентифікація користувача за паролем та TOTP-кодом для отримання JWT.
 
-Request:
+Запит:
 ```json
 {
   "username": "alice",
@@ -82,7 +47,7 @@ Request:
 }
 ```
 
-Response:
+Відповідь:
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -91,7 +56,7 @@ Response:
 }
 ```
 
-**JWT Payload** (decoded):
+**Вміст JWT** (після декодування):
 ```json
 {
   "sub": "alice",
@@ -101,9 +66,9 @@ Response:
 ```
 
 #### GET `/health`
-Health check.
+Перевірка стану сервісу.
 
-Response:
+Відповідь:
 ```json
 {
   "status": "healthy"
@@ -112,20 +77,20 @@ Response:
 
 ---
 
-### 2. API Gateway (Port 8000)
+### 2. API-шлюз (порт 8000)
 
-**Purpose**: Request routing with JWT validation and RBAC enforcement
+**Призначення**: маршрутизація запитів з перевіркою JWT та контролем доступу (RBAC).
 
-**Endpoints**:
+**Ендпоінти**:
 
 #### POST `/query`
-Execute a query on a specific database with JWT authorization.
+Виконання запиту до конкретного сховища з JWT-авторизацією.
 
-**Requirements**:
-- Must include `Authorization: Bearer <JWT>` header
-- Token must include `db_type` in `allowed_storages` claim
+**Вимоги**:
+- Заголовок `Authorization: Bearer <JWT>`
+- Токен має містити `db_type` у claims `allowed_storages`
 
-Request:
+Запит:
 ```bash
 curl -X POST http://localhost:8000/query \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
@@ -136,7 +101,7 @@ curl -X POST http://localhost:8000/query \
   }'
 ```
 
-Response (200 OK):
+Відповідь (200 OK):
 ```json
 {
   "result": "mock data from postgres",
@@ -145,51 +110,30 @@ Response (200 OK):
 }
 ```
 
-**Error Responses**:
+**Помилки**:
 
-1. **Missing Authorization Header** (401 Unauthorized):
-```json
-{
-  "detail": "Missing Authorization header"
-}
-```
-
-2. **Invalid Token Format** (401 Unauthorized):
-```json
-{
-  "detail": "Invalid Authorization header format"
-}
-```
-
-3. **Invalid/Expired Token** (401 Unauthorized):
-```json
-{
-  "detail": "Invalid or expired token"
-}
-```
-
-4. **User Not Allowed to Access Storage** (403 Forbidden):
-```json
-{
-  "detail": "Access denied to storage: mongodb"
-}
-```
+| Ситуація | Код | Повідомлення |
+|---|---|---|
+| Відсутній заголовок Authorization | 401 | Missing Authorization header |
+| Невірний формат заголовка | 401 | Invalid Authorization header format |
+| Невалідний або прострочений токен | 401 | Invalid or expired token |
+| Немає доступу до сховища | 403 | Access denied to storage: mongodb |
 
 ---
 
-## Setup & Installation
+## Встановлення та запуск
 
-### Prerequisites
+### Вимоги
 - Python 3.12+
 - pip
 
-### Install Dependencies
+### Встановлення залежностей
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**requirements.txt** includes:
+**requirements.txt** включає:
 - fastapi
 - uvicorn
 - passlib[bcrypt]
@@ -200,9 +144,9 @@ pip install -r requirements.txt
 - pydantic
 - pydantic-settings
 
-### Configure Environment
+### Налаштування змінних середовища
 
-Both services use `SECRET_KEY` from `.env` file:
+Обидва сервіси використовують `SECRET_KEY` з файлу `.env`:
 
 **auth_service/.env**:
 ```env
@@ -215,35 +159,35 @@ ACCESS_TOKEN_EXPIRE_MINUTES=15
 SECRET_KEY=your-super-secret-key-change-in-production-min-32-chars-12345
 ```
 
-⚠️ **IMPORTANT**: Both must use the **same SECRET_KEY** for JWT validation!
+⚠️ **ВАЖЛИВО**: обидва сервіси повинні використовувати **однаковий SECRET_KEY**!
 
 ---
 
-## Running the Services
+## Запуск сервісів
 
-### Terminal 1: Start Auth Service (Port 8001)
+### Термінал 1: Сервіс автентифікації (порт 8001)
 
 ```bash
 cd smart-energy-auth
 uvicorn auth_service.main:app --port 8001 --reload
 ```
 
-Access Swagger UI: http://localhost:8001/docs
+Swagger UI: http://localhost:8001/docs
 
-### Terminal 2: Start API Gateway (Port 8000)
+### Термінал 2: API-шлюз (порт 8000)
 
 ```bash
 cd smart-energy-auth
 uvicorn gateway.main:app --port 8000 --reload
 ```
 
-Access Swagger UI: http://localhost:8000/docs
+Swagger UI: http://localhost:8000/docs
 
 ---
 
-## Complete Usage Example
+## Повний приклад використання
 
-### Step 1: Register User
+### Крок 1: Реєстрація
 
 ```bash
 curl -X POST http://localhost:8001/register \
@@ -255,23 +199,13 @@ curl -X POST http://localhost:8001/register \
   }'
 ```
 
-**Response**:
-```json
-{
-  "qr_code_base64": "iVBORw0KGgoAAAANSUhEUg...",
-  "totp_secret": "JBSWY3DPEBLW64TMMQ======"
-}
-```
+Збережіть `totp_secret`. Відскануйте QR-код у Google Authenticator.
 
-Save the `totp_secret` for backup. Scan QR code with Google Authenticator on your phone.
+### Крок 2: Отримання TOTP-коду
 
-### Step 2: Get TOTP Code
+У застосунку-автентифікаторі з'явиться 6-значний код, який оновлюється кожні 30 секунд.
 
-In your authenticator app, you'll see a 6-digit code that refreshes every 30 seconds.
-
-Example code: `123456`
-
-### Step 3: Login to Get JWT
+### Крок 3: Вхід та отримання JWT
 
 ```bash
 curl -X POST http://localhost:8001/login \
@@ -283,22 +217,11 @@ curl -X POST http://localhost:8001/login \
   }'
 ```
 
-**Response**:
-```json
-{
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsImFsbG93ZWRfc3RvcmFnZXMiOlsicG9zdGdyZXMiLCJtb25nb2RiIl0sImV4cCI6MTcwODM2NzQwMH0.vxX...",
-  "token_type": "bearer",
-  "expires_in": 900
-}
-```
-
-### Step 4: Query via Gateway
-
-Use the JWT token to make queries through the API Gateway:
+### Крок 4: Запит через шлюз
 
 ```bash
 curl -X POST http://localhost:8000/query \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbGljZSIsImFsbG93ZWRfc3RvcmFnZXMiOlsicG9zdGdyZXMiLCJtb25nb2RiIl0sImV4cCI6MTcwODM2NzQwMH0.vxX..." \
+  -H "Authorization: Bearer <ваш_токен>" \
   -H "Content-Type: application/json" \
   -d '{
     "db_type": "postgres",
@@ -306,189 +229,100 @@ curl -X POST http://localhost:8000/query \
   }'
 ```
 
-**Response**:
-```json
-{
-  "result": "mock data from postgres",
-  "source": "postgres",
-  "message": "Query executed on postgres for user alice"
-}
-```
+### Крок 5: Перевірка RBAC
 
-### Step 5: Test RBAC - Try Unauthorized Storage
-
-User alice is only allowed `["postgres", "mongodb"]`. Try accessing `redis`:
+Користувач alice має доступ лише до `["postgres", "mongodb"]`. Спроба звернутися до `hdfs`:
 
 ```bash
 curl -X POST http://localhost:8000/query \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Authorization: Bearer <ваш_токен>" \
   -H "Content-Type: application/json" \
-  -d '{
-    "db_type": "redis"
-  }'
+  -d '{"db_type": "hdfs"}'
 ```
 
-**Response** (403 Forbidden):
+Відповідь (403 Forbidden):
 ```json
 {
-  "detail": "Access denied to storage: redis"
+  "detail": "Access denied to storage: hdfs"
 }
 ```
 
 ---
 
-## Security Features
+## Безпека
 
-### Authentication
-- ✅ Password hashing with bcrypt (salted, NIST-approved)
-- ✅ TOTP 2FA with Google Authenticator support
-- ✅ Time-based validation with ±30 second clock drift tolerance
+### Автентифікація
+- ✅ Хешування паролів bcrypt (з сіллю, відповідає NIST)
+- ✅ TOTP 2FA з підтримкою Google Authenticator
+- ✅ Допуск розсинхронізації годинника ±30 секунд
 
-### Authorization
-- ✅ JWT-based stateless authentication
-- ✅ Role-Based Access Control (RBAC) per storage system
-- ✅ Token expiration (default 15 minutes)
+### Авторизація
+- ✅ Stateless JWT-автентифікація
+- ✅ RBAC — контроль доступу на рівні сховищ
+- ✅ Термін дії токена (за замовчуванням 15 хвилин)
 
-### API Gateway
-- ✅ Bearer token validation
-- ✅ Generic error messages (no information leakage)
-- ✅ Per-endpoint RBAC enforcement
-- ✅ CORS enabled for MVP
-
-### Best Practices
-- ✅ Generic "Invalid credentials" message (prevents username enumeration)
-- ✅ Secure token storage in JWT (no session state needed)
-- ✅ Environment variable configuration (secrets not in code)
+### API-шлюз
+- ✅ Перевірка Bearer-токена
+- ✅ Загальні повідомлення про помилки (без витоку інформації)
+- ✅ RBAC на рівні кожного запиту
+- ✅ CORS увімкнено для MVP
 
 ---
 
-## File Structure
+## Структура проєкту
 
 ```
 smart-energy-auth/
 ├── auth_service/
 │   ├── __init__.py
-│   ├── main.py                # Main FastAPI app
-│   ├── models.py              # Pydantic schemas
-│   ├── users_db.py            # In-memory storage
-│   ├── config.py              # Settings
-│   ├── .env                   # Environment config
+│   ├── main.py                # Головний FastAPI-застосунок
+│   ├── models.py              # Pydantic-схеми
+│   ├── users_db.py            # Сховище в пам'яті
+│   ├── config.py              # Налаштування
+│   ├── .env                   # Змінні середовища
 │   └── utils/
 │       ├── __init__.py
-│       ├── password.py        # Bcrypt utilities
-│       ├── totp.py            # TOTP generation/verification
-│       └── jwt.py             # JWT creation/verification
+│       ├── password.py        # Утиліти bcrypt
+│       ├── totp.py            # Генерація та перевірка TOTP
+│       └── jwt.py             # Створення та перевірка JWT
 │
 ├── gateway/
 │   ├── __init__.py
-│   ├── main.py                # API Gateway
-│   └── .env                   # Environment config
+│   ├── main.py                # API-шлюз
+│   └── .env                   # Змінні середовища
 │
-├── requirements.txt           # Python dependencies
-└── README.md                  # This file
+├── admin_ui/
+│   └── index.html             # Адмін-панель
+│
+├── auth_ui/
+│   ├── index.html             # Сторінка входу
+│   └── register.html          # Сторінка реєстрації
+│
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
-## Testing with Swagger UI
+## Тестування через Swagger UI
 
-### Auth Service
-Open http://localhost:8001/docs in your browser
+### Сервіс автентифікації
+Відкрийте http://localhost:8001/docs
 
-1. Try `POST /register` with test data
-2. Manually enter TOTP code from authenticator
-3. Try `POST /login` with TOTP code
-4. Copy the JWT token
+1. Виконайте `POST /register` з тестовими даними
+2. Відскануйте QR-код і отримайте TOTP-код
+3. Виконайте `POST /login` з TOTP-кодом
+4. Скопіюйте JWT-токен
 
-### API Gateway
-Open http://localhost:8000/docs in your browser
+### API-шлюз
+Відкрийте http://localhost:8000/docs
 
-1. Click "Authorize" button (top right)
-2. Enter JWT token as `Bearer <token>`
-3. Try `POST /query` endpoint
+1. Натисніть кнопку "Authorize" (вгорі праворуч)
+2. Введіть токен у форматі `Bearer <токен>`
+3. Спробуйте `POST /query`
 
----
 
-## What's NOT Included (Next Phase)
+## Документація API
 
-- ❌ Real database (PostgreSQL, MongoDB)
-- ❌ Refresh tokens
-- ❌ Email verification
-- ❌ Rate limiting
-- ❌ Request logging/audit trail
-- ❌ User profile endpoints
-- ❌ Admin user management
-- ❌ Multi-factor authentication beyond TOTP
-- ❌ Token revocation (blacklist)
-
----
-
-## Environment Variables Reference
-
-### Auth Service (`auth_service/.env`)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| SECRET_KEY | (required) | Secret key for signing JWT tokens (min 32 chars) |
-| ACCESS_TOKEN_EXPIRE_MINUTES | 15 | JWT expiration time in minutes |
-
-### Gateway (`gateway/.env`)
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| SECRET_KEY | (required) | Must match auth service for JWT validation |
-
----
-
-## Troubleshooting
-
-### "Port already in use"
-The service is already running. Either:
-1. Kill the existing process: `taskkill /PID <pid> /F` (Windows)
-2. Use a different port: `uvicorn ... --port 8002`
-
-### "Invalid or expired token"
-- Token has expired (15 min default)
-- SECRET_KEY mismatch between auth service and gateway
-- Token was signed with different algorithm
-
-### "Invalid credentials" on login
-- Wrong username
-- Wrong password
-- Wrong TOTP code (check system time is synced)
-- TOTP code expired (codes rotate every 30 seconds)
-
-### "Access denied to storage"
-- User's `allowed_storages` claim doesn't include requested `db_type`
-- Register with the correct storages
-
----
-
-## Production Deployment Checklist
-
-- [ ] Use strong SECRET_KEY (generate: `python -c "import secrets; print(secrets.token_urlsafe(32))"`)
-- [ ] Set `ACCESS_TOKEN_EXPIRE_MINUTES` to appropriate value (5-60 min)
-- [ ] Run without `--reload` flag
-- [ ] Use production ASGI server (uvicorn with workers, Gunicorn)
-- [ ] Enable HTTPS/TLS
-- [ ] Replace in-memory storage with PostgreSQL
-- [ ] Add request logging
-- [ ] Enable rate limiting
-- [ ] Set CORS origins to specific domains
-- [ ] Add refresh token mechanism
-- [ ] Implement token blacklist for logout
-- [ ] Add audit logging for security events
-
----
-
-## License
-
-Part of Smart Energy project - MVP stage
-
----
-
-## Support
-
-For issues or questions, refer to the service endpoints documentation in Swagger UI:
-- Auth Service: http://localhost:8001/docs
-- API Gateway: http://localhost:8000/docs
+- Сервіс автентифікації: http://localhost:8001/docs
+- API-шлюз: http://localhost:8000/docs
