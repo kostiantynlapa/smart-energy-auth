@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Energy Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .navbar {
+            background: #1a1a2e;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .navbar h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .navbar-right {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .user-info {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #4a90d9;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #357abd;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(74, 144, 217, 0.3);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Login Screen */
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 4rem auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .login-container h2 {
+            margin-bottom: 1.5rem;
+            color: #1a1a2e;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #4a90d9;
+            box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        /* Users Management Screen */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .admin-header h2 {
+            color: #1a1a2e;
+        }
+
+        .table-wrapper {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        th {
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .role-select {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .storage-checkbox {
+            margin-right: 0.5rem;
+        }
+
+        .storage-item {
+            display: inline-block;
+            margin-right: 1rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-buttons .btn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h3 {
+            color: #1a1a2e;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .close-btn:hover {
+            color: #000;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .form-group-inline {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .checkbox-group {
+            margin-top: 1rem;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-weight: normal;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 0.5rem;
+            width: auto;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 2000;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            border-left: 4px solid #27ae60;
+        }
+
+        .toast.success::before {
+            content: "✓";
+            color: #27ae60;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .toast.error {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .toast.error::before {
+            content: "✕";
+            color: #e74c3c;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4a90d9;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .table-wrapper {
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 600px;
+            }
+
+            .storage-item {
+                display: block;
+                margin-bottom: 0.5rem;
+            }
+
+            .navbar {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .navbar-right {
+                width: 100%;
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .form-group-inline {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <h1>⚡ Smart Energy Admin</h1>
+        <div class="navbar-right">
+            <div class="user-info" id="userInfo"></div>
+            <button class="btn btn-secondary" id="logoutBtn" style="display:none;">Logout</button>
+        </div>
+    </nav>
+
+    <!-- Screens -->
+
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-container">
+            <h2>Admin Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="totp">TOTP Code (from authenticator)</label>
+                    <input type="text" id="totp" name="totp" placeholder="123456" maxlength="6" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-login">Login</button>
+                
+                <div style="text-align: center; margin-top: 1.5rem; font-size: 0.9rem;">
+                    <span style="color: #666;">Don't have an account? <a href="/register" style="color: #4a90d9; text-decoration: none; font-weight: 500;">Register →</a></span>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard Screen -->
+    <div id="dashboardScreen" class="screen">
+        <div class="container">
+            <div class="admin-header">
+                <h2>User Management</h2>
+                <button class="btn btn-primary" id="addUserBtn">+ Add User</button>
+            </div>
+
+            <div id="usersLoading" class="loading" style="display:none;">
+                <div class="spinner"></div>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Storages</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New User</h3>
+                <button class="close-btn" id="closeAddUserModal">&times;</button>
+            </div>
+            <form id="addUserForm">
+                <div class="form-group">
+                    <label for="newUsername">Username</label>
+                    <input type="text" id="newUsername" name="newUsername" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">Password</label>
+                    <input type="password" id="newPassword" name="newPassword" required>
+                </div>
+                <div class="form-group">
+                    <label for="newRole">Role</label>
+                    <select id="newRole" name="newRole">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Allowed Storages</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="storages" value="postgres"> PostgreSQL</label>
+                        <label><input type="checkbox" name="storages" value="mongodb"> MongoDB</label>
+                        <label><input type="checkbox" name="storages" value="s3"> S3</label>
+                        <label><input type="checkbox" name="storages" value="hdfs"> HDFS</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelAddUserBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE = "http://localhost:8001";
+        const STORAGES = ["postgres", "mongodb", "s3", "hdfs"];
+
+        // State
+        let authToken = null;
+        let currentUser = null;
+
+        // Initialize
+        document.addEventListener("DOMContentLoaded", () => {
+            restoreSession();
+            setupEventListeners();
+        });
+
+        // ============================================================================
+        // Session Management
+        // ============================================================================
+
+        function restoreSession() {
+            const token = localStorage.getItem("jwt_token");
+            const user = localStorage.getItem("user_info");
+            
+            if (token && user) {
+                authToken = token;
+                currentUser = JSON.parse(user);
+                showDashboard();
+            } else {
+                showLogin();
+            }
+        }
+
+        function showLogin() {
+            document.getElementById("loginScreen").classList.add("active");
+            document.getElementById("dashboardScreen").classList.remove("active");
+            document.getElementById("logoutBtn").style.display = "none";
+        }
+
+        function showDashboard() {
+            document.getElementById("loginScreen").classList.remove("active");
+            document.getElementById("dashboardScreen").classList.add("active");
+            document.getElementById("logoutBtn").style.display = "inline-block";
+            document.getElementById("userInfo").textContent = `Logged in as: ${currentUser.username}`;
+            loadUsers();
+        }
+
+        // ============================================================================
+        // Event Listeners
+        // ============================================================================
+
+        function setupEventListeners() {
+            // Login
+            document.getElementById("loginForm").addEventListener("submit", handleLogin);
+            document.getElementById("logoutBtn").addEventListener("click", handleLogout);
+
+            // Add User Modal
+            document.getElementById("addUserBtn").addEventListener("click", openAddUserModal);
+            document.getElementById("closeAddUserModal").addEventListener("click", closeAddUserModal);
+            document.getElementById("cancelAddUserBtn").addEventListener("click", closeAddUserModal);
+            document.getElementById("addUserForm").addEventListener("submit", handleAddUser);
+
+            // Close modal on outside click
+            document.getElementById("addUserModal").addEventListener("click", (e) => {
+                if (e.target.id === "addUserModal") closeAddUserModal();
+            });
+        }
+
+        // ============================================================================
+        // API Calls
+        // ============================================================================
+
+        async function apiCall(method, endpoint, body = null) {
+            const options = {
+                method,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": authToken ? `Bearer ${authToken}` : ""
+                }
+            };
+
+            if (body) options.body = JSON.stringify(body);
+
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const data = await response.json();
+
+                if (response.status === 401) {
+                    handleSessionExpired();
+                    throw new Error("Unauthorized");
+                }
+
+                if (!response.ok) {
+                    const detail = data.detail;
+                    if (Array.isArray(detail)) {
+                        throw new Error(detail.map(e => e.msg).join("; "));
+                    }
+                    throw new Error(detail || "API Error");
+                }
+
+                return data;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            const totp_code = document.getElementById("totp").value;
+
+            try {
+                const response = await apiCall("POST", "/login", {
+                    username,
+                    password,
+                    totp_code
+                });
+
+                authToken = response.access_token;
+                
+                // Decode JWT to get user info
+                const payload = JSON.parse(atob(response.access_token.split('.')[1]));
+                currentUser = {
+                    username: payload.sub,
+                    role: payload.role
+                };
+
+                localStorage.setItem("jwt_token", authToken);
+                localStorage.setItem("user_info", JSON.stringify(currentUser));
+
+                document.getElementById("loginForm").reset();
+                showToast(`Welcome, ${currentUser.username}!`, "success");
+                showDashboard();
+            } catch (error) {
+                showToast(error.message || "Login failed", "error");
+            }
+        }
+
+        function handleLogout() {
+            authToken = null;
+            currentUser = null;
+            localStorage.removeItem("jwt_token");
+            localStorage.removeItem("user_info");
+            showToast("Logged out", "success");
+            showLogin();
+        }
+
+        function handleSessionExpired() {
+            showToast("Session expired. Please login again.", "error");
+            handleLogout();
+        }
+
+        async function loadUsers() {
+            const loadingEl = document.getElementById("usersLoading");
+            loadingEl.style.display = "block";
+
+            try {
+                const users = await apiCall("GET", "/admin/users");
+                renderUsers(users);
+            } catch (error) {
+                showToast(error.message || "Failed to load users", "error");
+            } finally {
+                loadingEl.style.display = "none";
+            }
+        }
+
+        async function handleAddUser(e) {
+            e.preventDefault();
+
+            const username = document.getElementById("newUsername").value;
+            const password = document.getElementById("newPassword").value;
+            const role = document.getElementById("newRole").value;
+            const storages = Array.from(document.querySelectorAll('input[name="storages"]:checked'))
+                .map(cb => cb.value);
+
+            try {
+                await apiCall("POST", "/admin/users", {
+                    username,
+                    password,
+                    role,
+                    allowed_storages: storages
+                });
+
+                showToast(`User ${username} created successfully`, "success");
+                closeAddUserModal();
+                loadUsers();
+            } catch (error) {
+                showToast(error.message || "Failed to create user", "error");
+            }
+        }
+
+        async function updateUserRole(username, newRole) {
+            try {
+                await apiCall("PATCH", `/admin/users/${username}/role`, {
+                    role: newRole
+                });
+                showToast(`Role updated`, "success");
+                loadUsers();
+            } catch (error) {
+                showToast(error.message || "Failed to update role", "error");
+                loadUsers(); // Reload to restore previous state
+            }
+        }
+
+        async function updateUserStorages(username, storages) {
+            try {
+                await apiCall("PATCH", `/admin/users/${username}/storages`, {
+                    allowed_storages: storages
+                });
+                showToast(`Storages updated`, "success");
+            } catch (error) {
+                showToast(error.message || "Failed to update storages", "error");
+                loadUsers(); // Reload to restore previous state
+            }
+        }
+
+        async function deleteUser(username) {
+            if (username === currentUser.username) {
+                showToast("Cannot delete your own account", "error");
+                return;
+            }
+
+            if (!confirm(`Delete user ${username}? This cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                await apiCall("DELETE", `/admin/users/${username}`);
+                showToast(`User ${username} deleted`, "success");
+                loadUsers();
+            } catch (error) {
+                showToast(error.message || "Failed to delete user", "error");
+            }
+        }
+
+        // ============================================================================
+        // UI Rendering
+        // ============================================================================
+
+        function renderUsers(users) {
+            const tbody = document.getElementById("usersBody");
+            tbody.innerHTML = "";
+
+            users.forEach(user => {
+                const row = document.createElement("tr");
+                
+                // Storages checkboxes
+                const storageCheckboxes = STORAGES.map(storage => `
+                    <div class="storage-item">
+                        <label>
+                            <input type="checkbox" class="storage-checkbox" data-username="${user.username}" data-storage="${storage}" 
+                                ${user.allowed_storages.includes(storage) ? "checked" : ""}>
+                            ${storage}
+                        </label>
+                    </div>
+                `).join("");
+
+                row.innerHTML = `
+                    <td><strong>${user.username}</strong></td>
+                    <td>
+                        <select class="role-select" onchange="updateUserRole('${user.username}', this.value)">
+                            <option value="user" ${user.role === "user" ? "selected" : ""}>User</option>
+                            <option value="admin" ${user.role === "admin" ? "selected" : ""}>Admin</option>
+                        </select>
+                    </td>
+                    <td>
+                        <div id="storages-${user.username}">
+                            ${storageCheckboxes}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-danger" onclick="deleteUser('${user.username}')">Delete</button>
+                        </div>
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+
+                // Attach storage checkbox listeners
+                document.querySelectorAll(`input[data-username="${user.username}"]`).forEach(checkbox => {
+                    checkbox.addEventListener("change", () => {
+                        const storages = Array.from(
+                            document.querySelectorAll(`input[data-username="${user.username}"]:checked`)
+                        ).map(cb => cb.dataset.storage);
+                        updateUserStorages(user.username, storages);
+                    });
+                });
+            });
+        }
+
+        function openAddUserModal() {
+            document.getElementById("addUserModal").classList.add("active");
+            document.getElementById("addUserForm").reset();
+        }
+
+        function closeAddUserModal() {
+            document.getElementById("addUserModal").classList.remove("active");
+            document.getElementById("addUserForm").reset();
+        }
+
+        // ============================================================================
+        // Notifications
+        // ============================================================================
+
+        function showToast(message, type = "success") {
+            const container = document.getElementById("toastContainer");
+            const toast = document.createElement("div");
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = "slideIn 0.3s ease reverse";
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

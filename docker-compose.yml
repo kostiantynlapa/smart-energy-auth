@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smart-energy-auth
+    ports:
+      - "8001:8001"
+    environment:
+      - SECRET_KEY=your-super-secret-key-change-in-production-min-32-chars-12345
+      - ACCESS_TOKEN_EXPIRE_MINUTES=15
+    command: uvicorn auth_service.main:app --host 0.0.0.0 --port 8001
+    volumes:
+      - ./auth_service:/app/auth_service
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smart-energy-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=your-super-secret-key-change-in-production-min-32-chars-12345
+    command: uvicorn gateway.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./gateway:/app/gateway
+    depends_on:
+      - auth-service
+
+networks:
+  default:
+    name: smart-energy-network
